@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Blox - 3D Puzzle Game</title>
+    <!-- Instant Browser Address Bar Icon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%230b0e14'/><path d='M32 12 L48 20 L32 28 L16 20 Z' fill='%2300a3cc' stroke='%2300f0ff' stroke-width='2'/><path d='M16 20 L32 28 L32 52 L16 44 Z' fill='%23007799' stroke='%2300f0ff' stroke-width='2'/><path d='M32 28 L48 20 L48 44 L32 52 Z' fill='%23005577' stroke='%2300f0ff' stroke-width='2'/></svg>">
+    <style>
+        :root {
+            --bg-color: #0b0e14;
+            --panel-bg: rgba(22, 28, 38, 0.85);
+            --cyan: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.5);
+            --red: #ff3366;
+            --text: #e0f2fe;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Splash Screen Container */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            background: #000 url('splash.jpg') no-repeat center center;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 80px;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Neon Themed Start Button */
+        .btn-neon-start {
+            position: relative;
+            background: rgba(11, 14, 20, 0.75);
+            color: var(--cyan);
+            border: 2px solid var(--cyan);
+            border-radius: 12px;
+            padding: 16px 42px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px var(--cyan-glow), inset 0 0 15px rgba(0, 240, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+            overflow: hidden;
+        }
+
+        .btn-neon-start::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.4), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-neon-start:hover::before {
+            left: 100%;
+        }
+
+        .btn-neon-start:hover {
+            background: var(--cyan);
+            color: #0b0e14;
+            box-shadow: 0 0 30px var(--cyan), 0 0 50px var(--cyan-glow);
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .btn-neon-start:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 18px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--cyan);
+            text-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .logo-icon {
+            width: 18px;
+            height: 28px;
+            border: 2px solid var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            border-radius: 3px;
+            background: rgba(0, 240, 255, 0.2);
+        }
+
+        .controls-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        select, button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        select {
+            max-width: 130px;
+            background: rgba(11, 14, 20, 0.9);
+        }
+
+        select:hover, button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        #game-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas#stage {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Doubled Size D-Pad Container positioned safely above bottom navigation bar */
+        #dpad-container {
+            position: absolute;
+            bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+            left: 50%;
+            transform: translateX(-50%);
+            width: 360px;
+            height: 220px;
+            z-index: 10;
+        }
+
+        canvas#dpad-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 14, 20, 0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #overlay h1 {
+            font-size: 2.5rem;
+            color: var(--cyan);
+            text-shadow: 0 0 20px var(--cyan-glow);
+            margin-bottom: 10px;
+        }
+
+        #overlay p {
+            color: var(--text-dim);
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #overlay button {
+            padding: 12px 28px;
+            font-size: 1.1rem;
+            background: var(--cyan);
+            color: #000;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 0 20px var(--cyan-glow);
+            border-radius: 8px;
+        }
+
+        #overlay button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px var(--cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <button id="start-game-btn" class="btn-neon-start">START GAME</button>
+    </div>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>NEON BLOX</span>
+        </div>
+        <div class="controls-header">
+            <div class="stat-box">
+                <span>Level</span>
+                <select id="level-select"></select>
+            </div>
+            <div class="stat-box">
+                <span>Moves</span>
+                <span id="move-count" class="stat-value">0</span>
+            </div>
+            <div class="stat-box">
+                <span>Min Par</span>
+                <span id="par-count" class="stat-value">-</span>
+            </div>
+            <button id="reset-btn">↺ Reset</button>
+        </div>
+    </header>
+
+    <div id="game-container">
+        <canvas id="stage"></canvas>
+
+        <div id="dpad-container">
+            <canvas id="dpad-canvas"></canvas>
+        </div>
+
+        <div id="overlay">
+            <h1 id="overlay-title">LEVEL CLEAR!</h1>
+            <p id="overlay-desc">You completed the level in 0 moves.</p>
+            <button id="next-btn">NEXT LEVEL</button>
+        </div>
+    </div>
+
+    <script>
+        // Optimized BFS Solver for Min Par Calculation
+        function solveLevel(level) {
+            const startKey = `${level.start[0]},${level.start[1]},V`;
+            const queue = [[level.start[0], level.start[1], 'V', 0]];
+            const visited = new Set([startKey]);
+
+            const gridMap = new Set();
+            level.grid.forEach(([r, c]) => gridMap.add(`${r},${c}`));
+
+            while (queue.length > 0) {
+                const [r, c, state, moves] = queue.shift();
+
+                if (state === 'V' && r === level.target[0] && c === level.target[1]) {
+                    return moves;
+                }
+
+                const neighbors = getMoves(r, c, state);
+                for (let [nr, nc, nstate] of neighbors) {
+                    if (isValidPosition(nr, nc, nstate, gridMap)) {
+                        const key = `${nr},${nc},${nstate}`;
+                        if (!visited.has(key)) {
+                            visited.add(key);
+                            queue.push([nr, nc, nstate, moves + 1]);
+                        }
+                    }
+                }
+            }
+            return -1;
+        }
+
+        function getMoves(r, c, state) {
+            const res = [];
+            if (state === 'V') {
+                res.push([r - 2, c, 'H_NS']);
+                res.push([r + 1, c, 'H_NS']);
+                res.push([r, c - 2, 'H_EW']);
+                res.push([r, c + 1, 'H_EW']);
+            } else if (state === 'H_NS') {
+                res.push([r - 1, c, 'V']);
+                res.push([r + 2, c, 'V']);
+                res.push([r, c - 1, 'H_NS']);
+                res.push([r, c + 1, 'H_NS']);
+            } else if (state === 'H_EW') {
+                res.push([r - 1, c, 'H_EW']);
+                res.push([r + 1, c, 'H_EW']);
+                res.push([r, c - 1, 'V']);
+                res.push([r, c + 2, 'V']);
+            }
+            return res;
+        }
+
+        function isValidPosition(r, c, state, gridMap) {
+            let tiles = [];
+            if (state === 'V') tiles = [[r, c]];
+            else if (state === 'H_NS') tiles = [[r, c], [r + 1, c]];
+            else if (state === 'H_EW') tiles = [[r, c], [r, c + 1]];
+
+            return tiles.every(([tr, tc]) => gridMap.has(`${tr},${tc}`));
+        }
+
+        // Generate 150 levels with clear difficulty scaling and fast generation
+        function generate150Levels() {
+            const levels = [];
+
+            // Level 1: Beginner level
+            levels.push({
+                grid: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[3,3],[3,4],[3,5]],
+                start: [1, 1],
+                target: [2, 4],
+                minMoves: 7
+            });
+
+            let seed = 101;
+            function random() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            for (let i = 1; i < 150; i++) {
+                let solved = false;
+                let attempts = 0;
+                
+                // Tier parameters based on index
+                let targetMinMoves, maxAttempts, numTiles, bridgeProb;
+                if (i < 30) {
+                    // Early tier: 4 - 10 min moves
+                    targetMinMoves = 4 + Math.floor((i / 30) * 6);
+                    maxAttempts = 150;
+                    numTiles = 12 + Math.floor(random() * 6);
+                    bridgeProb = 0.5;
+                } else if (i < 90) {
+                    // Mid tier: 10 - 20 min moves
+                    targetMinMoves = 10 + Math.floor(((i - 30) / 60) * 10);
+                    maxAttempts = 200;
+                    numTiles = 18 + Math.floor(random() * 14);
+                    bridgeProb = 0.35;
+                } else {
+                    // Late tier: 20 - 40+ min moves
+                    targetMinMoves = 20 + Math.floor(((i - 90) / 60) * 18);
+                    maxAttempts = 250;
+                    numTiles = 32 + Math.floor(random() * 20);
+                    bridgeProb = 0.22;
+                }
+
+                let bestCandidate = null;
+                let bestMoves = -1;
+
+                while (!solved && attempts < maxAttempts) {
+                    attempts++;
+                    const gridMap = new Set();
+                    
+                    let cr = 10, cc = 10;
+                    gridMap.add(`${cr},${cc}`);
+                    let start = [cr, cc];
+
+                    let currR = cr, currC = cc;
+                    let path = [[currR, currC]];
+                    
+                    // Create main path
+                    for (let t = 0; t < numTiles; t++) {
+                        let dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                        let [dr, dc] = dirs[Math.floor(random() * 4)];
+                        currR += dr; currC += dc;
+                        gridMap.add(`${currR},${currC}`);
+                        path.push([currR, currC]);
+                    }
+
+                    // Add adjacent tiles based on difficulty density
+                    const extraTiles = [];
+                    gridMap.forEach(key => {
+                        let [r, c] = key.split(',').map(Number);
+                        if (random() < bridgeProb) extraTiles.push(`${r+1},${c}`);
+                        if (random() < bridgeProb) extraTiles.push(`${r},${c+1}`);
+                    });
+                    extraTiles.forEach(k => gridMap.add(k));
+
+                    let target = path[path.length - 1];
+                    if (start[0] === target[0] && start[1] === target[1]) continue;
+
+                    const gridArr = Array.from(gridMap).map(k => k.split(',').map(Number));
+                    const lvlCandidate = { grid: gridArr, start, target };
+
+                    const minMoves = solveLevel(lvlCandidate);
+                    if (minMoves > bestMoves) {
+                        bestMoves = minMoves;
+                        lvlCandidate.minMoves = minMoves;
+                        bestCandidate = lvlCandidate;
+                    }
+
+                    // Target condition
+                    if (minMoves >= targetMinMoves) {
+                        levels.push(lvlCandidate);
+                        solved = true;
+                    }
+                }
+
+                // Use best discovered or algorithmic fallback if target wasn't met in max attempts
+                if (!solved) {
+                    if (bestCandidate && bestMoves >= 4) {
+                        levels.push(bestCandidate);
+                    } else {
+                        levels.push(createFallbackLevel(i));
+                    }
+                }
+            }
+            return levels;
+        }
+
+        // Guaranteed playable fallback with scaling size
+        function createFallbackLevel(index) {
+            const grid = [];
+            const rows = 3 + Math.floor(index / 20);
+            const cols = 5 + Math.floor(index / 15);
+            for(let r=0; r<rows; r++){
+                for(let c=0; c<cols; c++){
+                    // Introduce light gaps in late fallbacks
+                    if (index > 50 && (r + c) % 5 === 0 && r > 0 && c > 0 && r < rows-1 && c < cols-1) continue;
+                    grid.push([r, c]);
+                }
+            }
+            const lvl = {
+                grid,
+                start: [0, 0],
+                target: [rows-1, cols-1]
+            };
+            lvl.minMoves = solveLevel(lvl);
+            return lvl;
+        }
+
+        const LEVELS = generate150Levels();
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('stage');
+                this.ctx = this.canvas.getContext('2d');
+                this.currentLevelIndex = 0;
+                this.moves = 0;
+                this.isAnimating = false;
+                this.completed = false;
+
+                this.tileW = 50;
+                this.tileH = 25;
+                this.unitSize = 25;
+
+                this.setupUI();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                this.loadLevel(0);
+                this.setupControls();
+                this.setupDPadCanvas();
+                this.loop();
+            }
+
+            setupUI() {
+                this.levelSelect = document.getElementById('level-select');
+                LEVELS.forEach((_, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = `Level ${idx + 1}`;
+                    this.levelSelect.appendChild(opt);
+                });
+
+                this.levelSelect.addEventListener('change', (e) => {
+                    this.loadLevel(parseInt(e.target.value));
+                });
+
+                document.getElementById('reset-btn').addEventListener('click', () => this.reset());
+                document.getElementById('next-btn').addEventListener('click', () => {
+                    document.getElementById('overlay').classList.remove('active');
+                    if (this.currentLevelIndex < LEVELS.length - 1) {
+                        this.loadLevel(this.currentLevelIndex + 1);
+                    } else {
+                        this.loadLevel(0);
+                    }
+                });
+
+                // Splash screen dismissal button
+                const splashBtn = document.getElementById('start-game-btn');
+                const splashScreen = document.getElementById('splash-screen');
+                splashBtn.addEventListener('click', () => {
+                    splashScreen.classList.add('hidden');
+                });
+            }
+
+            loadLevel(index) {
+                this.currentLevelIndex = index;
+                this.levelSelect.value = index;
+                this.level = LEVELS[index];
+
+                this.block = {
+                    r: this.level.start[0],
+                    c: this.level.start[1],
+                    state: 'V'
+                };
+
+                this.moves = 0;
+                this.completed = false;
+                this.isAnimating = false;
+                document.getElementById('move-count').textContent = '0';
+                
+                const par = this.level.minMoves > 0 ? this.level.minMoves : solveLevel(this.level);
+                document.getElementById('par-count').textContent = par > 0 ? par : '-';
+
+                this.gridSet = new Set(this.level.grid.map(([r, c]) => `${r},${c}`));
+
+                let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+                this.level.grid.forEach(([r, c]) => {
+                    if (r < minR) minR = r;
+                    if (r > maxR) maxR = r;
+                    if (c < minC) minC = c;
+                    if (c > maxC) maxC = c;
+                });
+                this.bounds = { minR, maxR, minC, maxC };
+            }
+
+            reset() {
+                this.loadLevel(this.currentLevelIndex);
+            }
+
+            resize() {
+                this.canvas.width = this.canvas.parentElement.clientWidth;
+                this.canvas.height = this.canvas.parentElement.clientHeight;
+            }
+
+            move(dir) {
+                if (this.isAnimating || this.completed) return;
+
+                let { r, c, state } = this.block;
+                let nextR = r, nextC = c, nextState = state;
+
+                if (dir === 'UP') {
+                    if (state === 'V') { nextR = r - 2; nextState = 'H_NS'; }
+                    else if (state === 'H_NS') { nextR = r - 1; nextState = 'V'; }
+                    else if (state === 'H_EW') { nextR = r - 1; }
+                } else if (dir === 'DOWN') {
+                    if (state === 'V') { nextR = r + 1; nextState = 'H_NS'; }
+                    else if (state === 'H_NS') { nextR = r + 2; nextState = 'V'; }
+                    else if (state === 'H_EW') { nextR = r + 1; }
+                } else if (dir === 'LEFT') {
+                    if (state === 'V') { nextC = c - 2; nextState = 'H_EW'; }
+                    else if (state === 'H_EW') { nextC = c - 1; nextState = 'V'; }
+                    else if (state === 'H_NS') { nextC = c - 1; }
+                } else if (dir === 'RIGHT') {
+                    if (state === 'V') { nextC = c + 1; nextState = 'H_EW'; }
+                    else if (state === 'H_EW') { nextC = c + 2; nextState = 'V'; }
+                    else if (state === 'H_NS') { nextC = c + 1; }
+                }
+
+                this.block.r = nextR;
+                this.block.c = nextC;
+                this.block.state = nextState;
+
+                this.moves++;
+                document.getElementById('move-count').textContent = this.moves;
+
+                this.checkState();
+            }
+
+            checkState() {
+                const occupied = this.getBlockTiles();
+                const allOnBoard = occupied.every(([r, c]) => this.gridSet.has(`${r},${c}`));
+
+                if (!allOnBoard) {
+                    this.isAnimating = true;
+                    setTimeout(() => {
+                        this.reset();
+                    }, 350);
+                    return;
+                }
+
+                if (this.block.state === 'V' && 
+                    this.block.r === this.level.target[0] && 
+                    this.block.c === this.level.target[1]) {
+                    this.completed = true;
+                    setTimeout(() => {
+                        const isFinal = this.currentLevelIndex === LEVELS.length - 1;
+                        document.getElementById('overlay-title').textContent = isFinal ? "GAME COMPLETED!" : "LEVEL CLEAR!";
+                        document.getElementById('overlay-desc').textContent = isFinal 
+                            ? `Ultimate Victory! You conquered all 150 levels in ${this.moves} moves on Level 150!`
+                            : `Completed Level ${this.currentLevelIndex + 1} in ${this.moves} moves.`;
+                        document.getElementById('next-btn').textContent = isFinal ? "RESTART GAME" : "NEXT LEVEL";
+                        document.getElementById('overlay').classList.add('active');
+                    }, 300);
+                }
+            }
+
+            getBlockTiles() {
+                const { r, c, state } = this.block;
+                if (state === 'V') return [[r, c]];
+                if (state === 'H_NS') return [[r, c], [r + 1, c]];
+                if (state === 'H_EW') return [[r, c], [r, c + 1]];
+            }
+
+            setupControls() {
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') this.move('UP');
+                    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') this.move('DOWN');
+                    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this.move('LEFT');
+                    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this.move('RIGHT');
+                });
+            }
+
+            setupDPadCanvas() {
+                const dpadcanvas = document.getElementById('dpad-canvas');
+                const dCtx = dpadcanvas.getContext('2d');
+
+                dpadcanvas.width = 360;
+                dpadcanvas.height = 220;
+
+                const dpadTiles = [
+                    { r: 1, c: 1, type: 'center', dir: null },
+                    { r: 0, c: 1, type: 'tile', dir: 'UP', arrow: '↗' },
+                    { r: 1, c: 2, type: 'tile', dir: 'RIGHT', arrow: '↘' },
+                    { r: 2, c: 1, type: 'tile', dir: 'DOWN', arrow: '↙' },
+                    { r: 1, c: 0, type: 'tile', dir: 'LEFT', arrow: '↖' }
+                ];
+
+                const tW = 96;
+                const tH = 48;
+                const offsetX = 180;
+                const offsetY = 40;
+
+                const getTileScreenPos = (r, c) => {
+                    const x = offsetX + (c - r) * (tW / 2);
+                    const y = offsetY + (c + r) * (tH / 2);
+                    return { x, y };
+                };
+
+                const drawDPad = () => {
+                    dCtx.clearRect(0, 0, dpadcanvas.width, dpadcanvas.height);
+
+                    dpadTiles.forEach(tile => {
+                        const p0 = getTileScreenPos(tile.r, tile.c);
+                        const p1 = getTileScreenPos(tile.r, tile.c + 1);
+                        const p2 = getTileScreenPos(tile.r + 1, tile.c + 1);
+                        const p3 = getTileScreenPos(tile.r + 1, tile.c);
+
+                        dCtx.beginPath();
+                        dCtx.moveTo(p0.x, p0.y);
+                        dCtx.lineTo(p1.x, p1.y);
+                        dCtx.lineTo(p2.x, p2.y);
+                        dCtx.lineTo(p3.x, p3.y);
+                        dCtx.closePath();
+
+                        if (tile.type === 'center') {
+                            dCtx.fillStyle = 'rgba(14, 18, 26, 0.85)';
+                            dCtx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+                            dCtx.lineWidth = 1.5;
+                            dCtx.fill();
+                            dCtx.stroke();
+                        } else {
+                            dCtx.fillStyle = 'rgba(22, 28, 38, 0.9)';
+                            dCtx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
+                            dCtx.lineWidth = 1.8;
+                            dCtx.fill();
+                            dCtx.stroke();
+
+                            const centerX = (p0.x + p2.x) / 2;
+                            const centerY = (p0.y + p2.y) / 2;
+                            dCtx.font = 'bold 1.8rem sans-serif';
+                            dCtx.fillStyle = '#00f0ff';
+                            dCtx.textAlign = 'center';
+                            dCtx.textBaseline = 'middle';
+                            dCtx.shadowColor = 'rgba(0, 240, 255, 0.6)';
+                            dCtx.shadowBlur = 10;
+                            dCtx.fillText(tile.arrow, centerX, centerY);
+                            dCtx.shadowBlur = 0;
+                        }
+                    });
+                };
+
+                const getHitTile = (clientX, clientY) => {
+                    const rect = dpadcanvas.getBoundingClientRect();
+                    const mx = clientX - rect.left;
+                    const my = clientY - rect.top;
+
+                    for (let tile of dpadTiles) {
+                        if (tile.type === 'center') continue;
+                        const p0 = getTileScreenPos(tile.r, tile.c);
+                        const p1 = getTileScreenPos(tile.r, tile.c + 1);
+                        const p2 = getTileScreenPos(tile.r + 1, tile.c + 1);
+                        const p3 = getTileScreenPos(tile.r + 1, tile.c);
+
+                        dCtx.beginPath();
+                        dCtx.moveTo(p0.x, p0.y);
+                        dCtx.lineTo(p1.x, p1.y);
+                        dCtx.lineTo(p2.x, p2.y);
+                        dCtx.lineTo(p3.x, p3.y);
+                        dCtx.closePath();
+
+                        if (dCtx.isPointInPath(mx, my)) {
+                            return tile.dir;
+                        }
+                    }
+                    return null;
+                };
+
+                dpadcanvas.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    const dir = getHitTile(e.clientX, e.clientY);
+                    if (dir) {
+                        this.move(dir);
+                    }
+                }, { passive: false });
+
+                dpadcanvas.addEventListener('pointermove', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+
+                drawDPad();
+            }
+
+            project3D(r, c, z) {
+                const x = (c - r) * (this.tileW / 2);
+                const y = (c + r) * (this.tileH / 2) - z * this.unitSize;
+                return { x, y };
+            }
+
+            loop() {
+                this.render();
+                requestAnimationFrame(() => this.loop());
+            }
+
+            render() {
+                const { width, height } = this.canvas;
+                this.ctx.clearRect(0, 0, width, height);
+
+                const centerR = (this.bounds.minR + this.bounds.maxR) / 2;
+                const centerC = (this.bounds.minC + this.bounds.maxC) / 2;
+                const centerIso = this.project3D(centerR, centerC, 0);
+
+                const originX = width / 2 - centerIso.x;
+                const originY = height / 2 - centerIso.y - 40;
+
+                this.ctx.save();
+                this.ctx.translate(originX, originY);
+
+                // 1. Draw Grid Tiles
+                this.level.grid.forEach(([r, c]) => {
+                    const isTarget = r === this.level.target[0] && c === this.level.target[1];
+                    this.drawTile(r, c, isTarget);
+                });
+
+                // 2. Draw 3D Block
+                this.drawBlock3D();
+
+                this.ctx.restore();
+            }
+
+            drawTile(r, c, isTarget) {
+                const p0 = this.project3D(r, c, 0);
+                const p1 = this.project3D(r, c + 1, 0);
+                const p2 = this.project3D(r + 1, c + 1, 0);
+                const p3 = this.project3D(r + 1, c, 0);
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(p0.x, p0.y);
+                this.ctx.lineTo(p1.x, p1.y);
+                this.srcLine = p2;
+                this.ctx.lineTo(p2.x, p2.y);
+                this.ctx.lineTo(p3.x, p3.y);
+                this.ctx.closePath();
+
+                if (isTarget) {
+                    this.ctx.fillStyle = 'rgba(255, 51, 102, 0.25)';
+                    this.ctx.strokeStyle = '#ff3366';
+                    this.ctx.lineWidth = 2.5;
+                    this.ctx.shadowColor = '#ff3366';
+                    this.ctx.shadowBlur = 12;
+                } else {
+                    this.ctx.fillStyle = '#161c26';
+                    this.ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.shadowBlur = 0;
+                }
+
+                this.ctx.fill();
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+            }
+
+            drawBlock3D() {
+                const { r, c, state } = this.block;
+                let sizeR = 1, sizeC = 1, sizeZ = 2;
+
+                if (state === 'H_NS') {
+                    sizeR = 2; sizeC = 1; sizeZ = 1;
+                } else if (state === 'H_EW') {
+                    sizeR = 1; sizeC = 2; sizeZ = 1;
+                }
+
+                const p000 = this.project3D(r, c, 0);
+                const p100 = this.project3D(r + sizeR, c, 0);
+                const p110 = this.project3D(r + sizeR, c + sizeC, 0);
+                const p010 = this.project3D(r, c + sizeC, 0);
+
+                const p001 = this.project3D(r, c, sizeZ);
+                const p1001 = this.project3D(r + sizeR, c, sizeZ);
+                const p1101 = this.project3D(r + sizeR, c + sizeC, sizeZ);
+                const p0101 = this.project3D(r, c + sizeC, sizeZ);
+
+                const drawFace = (points, fillStyle, strokeStyle, lineWidth = 1.5) => {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(points[0].x, points[0].y);
+                    for (let i = 1; i < points.length; i++) {
+                        this.ctx.lineTo(points[i].x, points[i].y);
+                    }
+                    this.ctx.closePath();
+                    this.ctx.fillStyle = fillStyle;
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = strokeStyle;
+                    this.ctx.lineWidth = lineWidth;
+                    this.ctx.stroke();
+                };
+
+                // 1. Back-Left Face
+                drawFace([p000, p010, p0101, p001], 'rgba(0, 60, 90, 0.4)', '#00f0ff');
+
+                // 2. Back-Right Face
+                drawFace([p010, p110, p1101, p0101], 'rgba(0, 45, 75, 0.4)', '#00f0ff');
+
+                // 3. Front-Left Face
+                drawFace([p000, p100, p1001, p001], 'rgba(0, 119, 153, 0.9)', '#00f0ff');
+
+                // 4. Front-Right Face
+                drawFace([p100, p110, p1101, p1001], 'rgba(0, 85, 119, 0.9)', '#00f0ff');
+
+                // 5. Top Face
+                this.ctx.shadowColor = 'rgba(0, 240, 255, 0.6)';
+                this.ctx.shadowBlur = 10;
+                drawFace([p001, p1001, p1101, p0101], '#00d8ff', '#ffffff', 1.5);
+                this.ctx.shadowBlur = 0;
+            }
+        }
+
+        window.onload = () => {
+            new Game();
+        };
+    </script>
+</body>
+</html>
