@@ -1,11 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Neon Blox - 3D Puzzle Game</title>
-    <link id="dynamic-favicon" rel="icon" type="image/png">
+    <!-- Instant Browser Address Bar Icon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%230b0e14'/><path d='M32 12 L48 20 L32 28 L16 20 Z' fill='%2300a3cc' stroke='%2300f0ff' stroke-width='2'/><path d='M16 20 L32 28 L32 52 L16 44 Z' fill='%23007799' stroke='%2300f0ff' stroke-width='2'/><path d='M32 28 L48 20 L48 44 L32 52 Z' fill='%23005577' stroke='%2300f0ff' stroke-width='2'/></svg>">
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -312,38 +312,6 @@
     </div>
 
     <script>
-        // Generate glowing neon isometric icon for browser tab
-        function generateFavicon() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#0b0e14';
-            ctx.fillRect(0, 0, 64, 64);
-
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#00f0ff';
-            ctx.fillStyle = '#00a3cc';
-
-            ctx.beginPath();
-            ctx.moveTo(32, 12); ctx.lineTo(48, 20); ctx.lineTo(32, 28); ctx.lineTo(16, 20);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-
-            ctx.fillStyle = '#007799';
-            ctx.beginPath();
-            ctx.moveTo(16, 20); ctx.lineTo(32, 28); ctx.lineTo(32, 52); ctx.lineTo(16, 44);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-
-            ctx.fillStyle = '#005577';
-            ctx.beginPath();
-            ctx.moveTo(32, 28); ctx.lineTo(48, 20); ctx.lineTo(48, 44); ctx.lineTo(32, 52);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-
-            document.getElementById('dynamic-favicon').href = canvas.toDataURL('image/png');
-        }
-        generateFavicon();
-
         // Optimized BFS Solver for Min Par Calculation
         function solveLevel(level) {
             const startKey = `${level.start[0]},${level.start[1]},V`;
@@ -863,6 +831,7 @@
                 this.ctx.beginPath();
                 this.ctx.moveTo(p0.x, p0.y);
                 this.ctx.lineTo(p1.x, p1.y);
+                this.srcLine = p2;
                 this.ctx.lineTo(p2.x, p2.y);
                 this.ctx.lineTo(p3.x, p3.y);
                 this.ctx.closePath();
@@ -944,5 +913,4 @@
         };
     </script>
 </body>
-</html></html>
-```
+</html>
