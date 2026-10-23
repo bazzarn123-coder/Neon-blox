@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Neon Blox - 3D Puzzle Game</title>
-    <!-- Instant Browser Address Bar Icon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%230b0e14'/><path d='M32 12 L48 20 L32 28 L16 20 Z' fill='%2300a3cc' stroke='%2300f0ff' stroke-width='2'/><path d='M16 20 L32 28 L32 52 L16 44 Z' fill='%23007799' stroke='%2300f0ff' stroke-width='2'/><path d='M32 28 L48 20 L48 44 L32 52 Z' fill='%23005577' stroke='%2300f0ff' stroke-width='2'/></svg>">
+    <link id="dynamic-favicon" rel="icon" type="image/png">
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -141,7 +140,7 @@
         .controls-header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .stat-box {
@@ -174,7 +173,7 @@
         }
 
         select {
-            max-width: 130px;
+            max-width: 120px;
             background: rgba(11, 14, 20, 0.9);
         }
 
@@ -182,6 +181,17 @@
             background: rgba(255, 255, 255, 0.12);
             border-color: var(--cyan);
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        #auto-btn {
+            display: none; /* Hidden by default until 5 failures */
+        }
+
+        button.active-auto {
+            background: var(--cyan);
+            color: #0b0e14;
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan);
         }
 
         #game-container {
@@ -197,7 +207,7 @@
             display: block;
         }
 
-        /* Doubled Size D-Pad Container positioned safely above bottom navigation bar */
+        /* Doubled Size D-Pad Container */
         #dpad-container {
             position: absolute;
             bottom: calc(30px + env(safe-area-inset-bottom, 0px));
@@ -293,6 +303,7 @@
                 <span>Min Par</span>
                 <span id="par-count" class="stat-value">-</span>
             </div>
+            <button id="auto-btn">▶ Auto</button>
             <button id="reset-btn">↺ Reset</button>
         </div>
     </header>
@@ -312,53 +323,89 @@
     </div>
 
     <script>
-        // Optimized BFS Solver for Min Par Calculation
-        function solveLevel(level) {
-            const startKey = `${level.start[0]},${level.start[1]},V`;
-            const queue = [[level.start[0], level.start[1], 'V', 0]];
+        // Generate glowing neon isometric icon for browser tab
+        function generateFavicon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#0b0e14';
+            ctx.fillRect(0, 0, 64, 64);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00f0ff';
+            ctx.fillStyle = '#00a3cc';
+
+            ctx.beginPath();
+            ctx.moveTo(32, 12); ctx.lineTo(48, 20); ctx.lineTo(32, 28); ctx.lineTo(16, 20);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#007799';
+            ctx.beginPath();
+            ctx.moveTo(16, 20); ctx.lineTo(32, 28); ctx.lineTo(32, 52); ctx.lineTo(16, 44);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#005577';
+            ctx.beginPath();
+            ctx.moveTo(32, 28); ctx.lineTo(48, 20); ctx.lineTo(48, 44); ctx.lineTo(32, 52);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+
+            document.getElementById('dynamic-favicon').href = canvas.toDataURL('image/png');
+        }
+        generateFavicon();
+
+        // Optimized BFS Solver returning move count or path sequence
+        function solveLevel(level, returnPath = false, currentBlock = null) {
+            const startR = currentBlock ? currentBlock.r : level.start[0];
+            const startC = currentBlock ? currentBlock.c : level.start[1];
+            const startState = currentBlock ? currentBlock.state : 'V';
+
+            const startKey = `${startR},${startC},${startState}`;
+            const queue = [[startR, startC, startState, 0, []]];
             const visited = new Set([startKey]);
 
             const gridMap = new Set();
             level.grid.forEach(([r, c]) => gridMap.add(`${r},${c}`));
 
             while (queue.length > 0) {
-                const [r, c, state, moves] = queue.shift();
+                const [r, c, state, moves, path] = queue.shift();
 
                 if (state === 'V' && r === level.target[0] && c === level.target[1]) {
-                    return moves;
+                    return returnPath ? path : moves;
                 }
 
                 const neighbors = getMoves(r, c, state);
-                for (let [nr, nc, nstate] of neighbors) {
+                for (let [nr, nc, nstate, dir] of neighbors) {
                     if (isValidPosition(nr, nc, nstate, gridMap)) {
                         const key = `${nr},${nc},${nstate}`;
                         if (!visited.has(key)) {
                             visited.add(key);
-                            queue.push([nr, nc, nstate, moves + 1]);
+                            queue.push([nr, nc, nstate, moves + 1, [...path, dir]]);
                         }
                     }
                 }
             }
-            return -1;
+            return returnPath ? null : -1;
         }
 
         function getMoves(r, c, state) {
             const res = [];
             if (state === 'V') {
-                res.push([r - 2, c, 'H_NS']);
-                res.push([r + 1, c, 'H_NS']);
-                res.push([r, c - 2, 'H_EW']);
-                res.push([r, c + 1, 'H_EW']);
+                res.push([r - 2, c, 'H_NS', 'UP']);
+                res.push([r + 1, c, 'H_NS', 'DOWN']);
+                res.push([r, c - 2, 'H_EW', 'LEFT']);
+                res.push([r, c + 1, 'H_EW', 'RIGHT']);
             } else if (state === 'H_NS') {
-                res.push([r - 1, c, 'V']);
-                res.push([r + 2, c, 'V']);
-                res.push([r, c - 1, 'H_NS']);
-                res.push([r, c + 1, 'H_NS']);
+                res.push([r - 1, c, 'V', 'UP']);
+                res.push([r + 2, c, 'V', 'DOWN']);
+                res.push([r, c - 1, 'H_NS', 'LEFT']);
+                res.push([r, c + 1, 'H_NS', 'RIGHT']);
             } else if (state === 'H_EW') {
-                res.push([r - 1, c, 'H_EW']);
-                res.push([r + 1, c, 'H_EW']);
-                res.push([r, c - 1, 'V']);
-                res.push([r, c + 2, 'V']);
+                res.push([r - 1, c, 'H_EW', 'UP']);
+                res.push([r + 1, c, 'H_EW', 'DOWN']);
+                res.push([r, c - 1, 'V', 'LEFT']);
+                res.push([r, c + 2, 'V', 'RIGHT']);
             }
             return res;
         }
@@ -394,22 +441,18 @@
                 let solved = false;
                 let attempts = 0;
                 
-                // Tier parameters based on index
                 let targetMinMoves, maxAttempts, numTiles, bridgeProb;
                 if (i < 30) {
-                    // Early tier: 4 - 10 min moves
                     targetMinMoves = 4 + Math.floor((i / 30) * 6);
                     maxAttempts = 150;
                     numTiles = 12 + Math.floor(random() * 6);
                     bridgeProb = 0.5;
                 } else if (i < 90) {
-                    // Mid tier: 10 - 20 min moves
                     targetMinMoves = 10 + Math.floor(((i - 30) / 60) * 10);
                     maxAttempts = 200;
                     numTiles = 18 + Math.floor(random() * 14);
                     bridgeProb = 0.35;
                 } else {
-                    // Late tier: 20 - 40+ min moves
                     targetMinMoves = 20 + Math.floor(((i - 90) / 60) * 18);
                     maxAttempts = 250;
                     numTiles = 32 + Math.floor(random() * 20);
@@ -430,7 +473,6 @@
                     let currR = cr, currC = cc;
                     let path = [[currR, currC]];
                     
-                    // Create main path
                     for (let t = 0; t < numTiles; t++) {
                         let dirs = [[-1,0],[1,0],[0,-1],[0,1]];
                         let [dr, dc] = dirs[Math.floor(random() * 4)];
@@ -439,7 +481,6 @@
                         path.push([currR, currC]);
                     }
 
-                    // Add adjacent tiles based on difficulty density
                     const extraTiles = [];
                     gridMap.forEach(key => {
                         let [r, c] = key.split(',').map(Number);
@@ -461,14 +502,12 @@
                         bestCandidate = lvlCandidate;
                     }
 
-                    // Target condition
                     if (minMoves >= targetMinMoves) {
                         levels.push(lvlCandidate);
                         solved = true;
                     }
                 }
 
-                // Use best discovered or algorithmic fallback if target wasn't met in max attempts
                 if (!solved) {
                     if (bestCandidate && bestMoves >= 4) {
                         levels.push(bestCandidate);
@@ -480,14 +519,12 @@
             return levels;
         }
 
-        // Guaranteed playable fallback with scaling size
         function createFallbackLevel(index) {
             const grid = [];
             const rows = 3 + Math.floor(index / 20);
             const cols = 5 + Math.floor(index / 15);
             for(let r=0; r<rows; r++){
                 for(let c=0; c<cols; c++){
-                    // Introduce light gaps in late fallbacks
                     if (index > 50 && (r + c) % 5 === 0 && r > 0 && c > 0 && r < rows-1 && c < cols-1) continue;
                     grid.push([r, c]);
                 }
@@ -509,8 +546,12 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.currentLevelIndex = 0;
                 this.moves = 0;
+                this.failCount = 0;
                 this.isAnimating = false;
                 this.completed = false;
+
+                this.isAutoPlaying = false;
+                this.autoTimer = null;
 
                 this.tileW = 50;
                 this.tileH = 25;
@@ -539,6 +580,9 @@
                     this.loadLevel(parseInt(e.target.value));
                 });
 
+                this.autoBtn = document.getElementById('auto-btn');
+                this.autoBtn.addEventListener('click', () => this.toggleAutoPlay());
+
                 document.getElementById('reset-btn').addEventListener('click', () => this.reset());
                 document.getElementById('next-btn').addEventListener('click', () => {
                     document.getElementById('overlay').classList.remove('active');
@@ -549,7 +593,6 @@
                     }
                 });
 
-                // Splash screen dismissal button
                 const splashBtn = document.getElementById('start-game-btn');
                 const splashScreen = document.getElementById('splash-screen');
                 splashBtn.addEventListener('click', () => {
@@ -558,10 +601,19 @@
             }
 
             loadLevel(index) {
+                this.stopAutoPlay();
                 this.currentLevelIndex = index;
                 this.levelSelect.value = index;
                 this.level = LEVELS[index];
 
+                this.failCount = 0;
+                if (this.autoBtn) {
+                    this.autoBtn.style.display = 'none';
+                }
+                this.initLevelState();
+            }
+
+            initLevelState() {
                 this.block = {
                     r: this.level.start[0],
                     c: this.level.start[1],
@@ -589,7 +641,49 @@
             }
 
             reset() {
-                this.loadLevel(this.currentLevelIndex);
+                this.stopAutoPlay();
+                this.initLevelState();
+            }
+
+            stopAutoPlay() {
+                this.isAutoPlaying = false;
+                if (this.autoTimer) {
+                    clearInterval(this.autoTimer);
+                    this.autoTimer = null;
+                }
+                if (this.autoBtn) {
+                    this.autoBtn.textContent = '▶ Auto';
+                    this.autoBtn.classList.remove('active-auto');
+                }
+            }
+
+            toggleAutoPlay() {
+                if (this.isAutoPlaying) {
+                    this.stopAutoPlay();
+                } else {
+                    this.startAutoPlay();
+                }
+            }
+
+            startAutoPlay() {
+                if (this.completed) return;
+
+                const path = solveLevel(this.level, true, this.block);
+                if (!path || path.length === 0) return;
+
+                this.isAutoPlaying = true;
+                this.autoBtn.textContent = '⏸ Pause';
+                this.autoBtn.classList.add('active-auto');
+
+                let stepIndex = 0;
+                this.autoTimer = setInterval(() => {
+                    if (!this.isAutoPlaying || this.completed || stepIndex >= path.length) {
+                        this.stopAutoPlay();
+                        return;
+                    }
+                    this.move(path[stepIndex], true);
+                    stepIndex++;
+                }, 280);
             }
 
             resize() {
@@ -597,8 +691,12 @@
                 this.canvas.height = this.canvas.parentElement.clientHeight;
             }
 
-            move(dir) {
+            move(dir, isFromAuto = false) {
                 if (this.isAnimating || this.completed) return;
+
+                if (!isFromAuto && this.isAutoPlaying) {
+                    this.stopAutoPlay();
+                }
 
                 let { r, c, state } = this.block;
                 let nextR = r, nextC = c, nextState = state;
@@ -636,6 +734,11 @@
                 const allOnBoard = occupied.every(([r, c]) => this.gridSet.has(`${r},${c}`));
 
                 if (!allOnBoard) {
+                    this.stopAutoPlay();
+                    this.failCount++;
+                    if (this.failCount >= 5 && this.autoBtn) {
+                        this.autoBtn.style.display = 'inline-block';
+                    }
                     this.isAnimating = true;
                     setTimeout(() => {
                         this.reset();
@@ -647,6 +750,7 @@
                     this.block.r === this.level.target[0] && 
                     this.block.c === this.level.target[1]) {
                     this.completed = true;
+                    this.stopAutoPlay();
                     setTimeout(() => {
                         const isFinal = this.currentLevelIndex === LEVELS.length - 1;
                         document.getElementById('overlay-title').textContent = isFinal ? "GAME COMPLETED!" : "LEVEL CLEAR!";
@@ -831,7 +935,6 @@
                 this.ctx.beginPath();
                 this.ctx.moveTo(p0.x, p0.y);
                 this.ctx.lineTo(p1.x, p1.y);
-                this.srcLine = p2;
                 this.ctx.lineTo(p2.x, p2.y);
                 this.ctx.lineTo(p3.x, p3.y);
                 this.ctx.closePath();
